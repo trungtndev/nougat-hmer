@@ -22,7 +22,7 @@ from sconf import Config
 from nougat import NougatDataset
 from lightning_module import NougatDataPLModule, NougatModelPLModule
 from nougat.utils.dataset import CROHMEDataset
-from nougat.utils import *
+from nougat.util import *
 
 try:
     import wandb
