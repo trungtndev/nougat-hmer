@@ -245,9 +245,7 @@ class BARTDecoder(nn.Module):
 
         if not name_or_path:
             bart_state_dict = MBartForCausalLM.from_pretrained(
-                # "facebook/mbart-large-50"
-                "facebook/mbart-base-50"
-
+                "facebook/mbart-large-50"
             ).state_dict()
             new_bart_state_dict = self.model.state_dict()
             for x in new_bart_state_dict:
@@ -288,6 +286,7 @@ class BARTDecoder(nn.Module):
         past_key_values=None,
         use_cache: bool = None,
         attention_mask: torch.Tensor = None,
+        **kwargs
     ):
         """
         Args:
@@ -643,7 +642,7 @@ class NougatModel(PreTrainedModel):
                         continue
                     elif small_var[0] < 30:
                         idx = 0
-                    logging.warn("Found repetitions in sample %i" % b)
+                    # logging.warn("Found repetitions in sample %i" % b)
                     output["repeats"].append(idx)
                     output["sequences"][b, idx:] = self.decoder.tokenizer.pad_token_id
                     output["repetitions"][b, :idx] = self.decoder.tokenizer.pad_token_id

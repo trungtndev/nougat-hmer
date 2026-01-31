@@ -18,6 +18,7 @@ from torch.utils.data import DataLoader
 
 from nougat import NougatConfig, NougatModel
 from nougat.metrics import get_metrics
+from nougat.utils import ExpRateRecorder
 
 
 class NougatModelPLModule(pl.LightningModule):
@@ -57,6 +58,8 @@ class NougatModelPLModule(pl.LightningModule):
                 )
             )
 
+        self.exprate_recorder = ExpRateRecorder()
+
     def training_step(self, batch, batch_idx):
         image_tensors = batch["image"]
         tokenizer_out = self.model.decoder.tokenizer(
@@ -66,11 +69,12 @@ class NougatModelPLModule(pl.LightningModule):
             truncation=True,
             return_tensors="pt",
         )
-        decoder_input_ids, attention_masks = tokenizer_out["input_ids"].to(self.device), tokenizer_out["attention_mask"].to(self.device)
+        decoder_input_ids, attention_masks = tokenizer_out["input_ids"].to(self.device), tokenizer_out[
+            "attention_mask"].to(self.device)
         print("decoder_input_ids", decoder_input_ids)
         loss = self.model(image_tensors, decoder_input_ids, attention_masks)[0]
-        if loss is not None:
-            self.log_dict({"train/loss": loss}, sync_dist=True)
+        self.log("train/loss", loss, prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
+
         return loss
 
     def validation_step(self, batch, batch_idx, dataset_idx=0):
@@ -83,27 +87,21 @@ class NougatModelPLModule(pl.LightningModule):
             return_tensors="pt",
         )
         decoder_input_ids, attention_masks = tokenizer_out["input_ids"].to(self.device), tokenizer_out["attention_mask"].to(self.device)
-        preds = self.model.inference(
-            image_tensors=image_tensors,
-            return_attentions=False,
-        )["predictions"]
-        # gts = self.model.decoder.tokenizer.batch_decode(
-        #     markdown, skip_special_tokens=True
-        # )
-        # metrics = get_metrics(gts, preds, pool=False)
-        # scores = {
-        #     "val/" + key: sum(values) / len(values) for key, values in metrics.items()
-        # }
-        # self.validation_step_outputs.append(scores)
-        return None
 
-    def on_validation_epoch_end(self):
-        if (
-            self.validation_step_outputs is not None
-            and len(self.validation_step_outputs) >= 1
-        ):
-            self.log_dict(self.validation_step_outputs[0], sync_dist=True)
-            self.validation_step_outputs.clear()
+        preds = self.model.inference(image_tensors=image_tensors, return_attentions=False)["predictions"]
+        gts = self.model.decoder.tokenizer.batch_decode(decoder_input_ids, skip_special_tokens=True)
+
+        loss = self.model(image_tensors, decoder_input_ids, attention_masks)[0]
+        self.log("val/loss", loss, prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
+
+        self.exprate_recorder(preds, gts)
+        self.log(
+            "val/exprate", self.exprate_recorder,
+            prog_bar=True, on_step=True, on_epoch=True, sync_dist=True
+        )
+
+    # def on_validation_epoch_end(self):
+    #     pass
 
     def configure_optimizers(self):
         def _get_device_count():
@@ -199,9 +197,9 @@ class NougatModelPLModule(pl.LightningModule):
     @rank_zero_only
     def on_save_checkpoint(self, checkpoint):
         save_path = (
-            Path(self.config.result_path)
-            / self.config.exp_name
-            / self.config.exp_version
+                Path(self.config.result_path)
+                / self.config.exp_name
+                / self.config.exp_version
         )
         self.model.save_pretrained(save_path)
         self.model.decoder.tokenizer.save_pretrained(save_path)
@@ -234,10 +232,12 @@ class NougatDataPLModule(pl.LightningDataModule):
         return DataLoader(
             self.train_datasets,
             shuffle=True,
-            # num_workers=self.num_workers,
+            num_workers=self.config.num_workers,
             batch_size=self.train_batch_sizes,
-            # collate_fn=vqgan_collate_fn,
-            pin_memory=True
+            pin_memory=True,
+            generator=self.g,
+            worker_init_fn=self.seed_worker,
+
         )
 
     def val_dataloader(self):
@@ -252,16 +252,15 @@ class NougatDataPLModule(pl.LightningDataModule):
         # ]
         return DataLoader(
             self.train_datasets,
-            shuffle=True,
-            # num_workers=self.num_workers,
-            batch_size=self.train_batch_sizes,
-            # collate_fn=vqgan_collate_fn,
-            pin_memory=True
+            shuffle=False,
+            num_workers=self.config.num_workers,
+            batch_size=self.val_batch_sizes,
+            pin_memory=True,
         )
 
     @staticmethod
     def seed_worker(wordker_id):
-        worker_seed = torch.initial_seed() % 2**32
+        worker_seed = torch.initial_seed() % 2 ** 32
         np.random.seed(worker_seed)
         random.seed(worker_seed)
 

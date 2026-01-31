@@ -297,7 +297,10 @@ class CROHMEDataset(Dataset):
         self.perturb = "NOUGAT_PERTURB" in os.environ and os.environ["NOUGAT_PERTURB"]
         # TODO improve naming conventions
         # template = "%s"
-        self.dataset = pd.read_csv(f"{dataset_path}/caption.txt", sep="\t", names=['image', 'caption']).values.tolist()
+        self.dataset = pd.read_csv(
+            f"{dataset_path}/caption.txt",
+            sep="\t", names=['image', 'caption']
+        ).values.tolist()
 
     def __len__(self) -> int:
         return len(self.dataset)
@@ -316,32 +319,6 @@ class CROHMEDataset(Dataset):
         input_tensor = self.nougat_model.encoder.prepare_input(
             sample, random_padding=self.split == "train"
         )
-
-        # tokenizer_out = self.nougat_model.decoder.tokenizer(
-        #     txt,
-        #     max_length=self.max_length,
-        #     padding="max_length",
-        #     return_token_type_ids=False,
-        #     truncation=True,
-        #     return_tensors="pt",
-        # )
-        # input_ids = tokenizer_out["input_ids"].squeeze(0)
-        # attention_mask = tokenizer_out["attention_mask"].squeeze(0)
-        # print(f"fname: {fname}, txt: {txt}, input_ids shape: {input_ids.shape}")
-        # randomly perturb ground truth tokens
-        # if self.split == "train" and self.perturb:
-        #     # check if we perturb tokens
-        #     unpadded_length = attention_mask.sum()
-        #     while random.random() < 0.1:
-        #         try:
-        #             pos = random.randint(1, unpadded_length - 2)
-        #             token = random.randint(
-        #                 23, len(self.nougat_model.decoder.tokenizer) - 1
-        #             )
-        #             input_ids[pos] = token
-        #         except ValueError:
-        #             break
-        # return input_tensor, input_ids, attention_mask
         return {
             "image": input_tensor,
             "txt": txt
