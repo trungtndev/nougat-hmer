@@ -69,9 +69,8 @@ class NougatModelPLModule(pl.LightningModule):
             truncation=True,
             return_tensors="pt",
         )
-        decoder_input_ids, attention_masks = tokenizer_out["input_ids"].to(self.device), tokenizer_out[
-            "attention_mask"].to(self.device)
-        print("decoder_input_ids", decoder_input_ids)
+        decoder_input_ids = tokenizer_out["input_ids"].to(self.device)
+        attention_masks = tokenizer_out["attention_mask"].to(self.device)
         loss = self.model(image_tensors, decoder_input_ids, attention_masks)[0]
         self.log("train/loss", loss, prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
 
@@ -86,7 +85,8 @@ class NougatModelPLModule(pl.LightningModule):
             truncation=True,
             return_tensors="pt",
         )
-        decoder_input_ids, attention_masks = tokenizer_out["input_ids"].to(self.device), tokenizer_out["attention_mask"].to(self.device)
+        decoder_input_ids = tokenizer_out["input_ids"].to(self.device)
+        attention_masks = tokenizer_out["attention_mask"].to(self.device)
 
         preds = self.model.inference(image_tensors=image_tensors, return_attentions=False)["predictions"]
         gts = self.model.decoder.tokenizer.batch_decode(decoder_input_ids, skip_special_tokens=True)
