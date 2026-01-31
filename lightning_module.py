@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 
 from nougat import NougatConfig, NougatModel
 from nougat.metrics import get_metrics
-from nougat.utils import ExpRateRecorder
+from nougat.util import ExpRateRecorder
 
 
 class NougatModelPLModule(pl.LightningModule):
