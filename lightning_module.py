@@ -72,7 +72,7 @@ class NougatModelPLModule(pl.LightningModule):
         decoder_input_ids = tokenizer_out["input_ids"].to(self.device)
         attention_masks = tokenizer_out["attention_mask"].to(self.device)
         loss = self.model(image_tensors, decoder_input_ids, attention_masks)[0]
-        self.log("train/loss", loss, prog_bar=True, on_step=False, on_epoch=True, sync_dist=True)
+        self.log("train/loss", loss, prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
 
         return loss
 
