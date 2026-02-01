@@ -1,0 +1,226 @@
+{
+  "version": "1.0",
+  "truncation": null,
+  "padding": null,
+  "added_tokens": [
+    {
+      "id": 0,
+      "content": "[PAD]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 1,
+      "content": "[BOS]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 2,
+      "content": "[EOS]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 3,
+      "content": "[UNK]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    }
+  ],
+  "normalizer": null,
+  "pre_tokenizer": {
+    "type": "WhitespaceSplit"
+  },
+  "post_processor": {
+    "type": "TemplateProcessing",
+    "single": [
+      {
+        "SpecialToken": {
+          "id": "[BOS]",
+          "type_id": 0
+        }
+      },
+      {
+        "Sequence": {
+          "id": "A",
+          "type_id": 0
+        }
+      },
+      {
+        "SpecialToken": {
+          "id": "[EOS]",
+          "type_id": 0
+        }
+      }
+    ],
+    "pair": [
+      {
+        "Sequence": {
+          "id": "A",
+          "type_id": 0
+        }
+      },
+      {
+        "Sequence": {
+          "id": "B",
+          "type_id": 1
+        }
+      }
+    ],
+    "special_tokens": {
+      "[BOS]": {
+        "id": "[BOS]",
+        "ids": [
+          1
+        ],
+        "tokens": [
+          "[BOS]"
+        ]
+      },
+      "[EOS]": {
+        "id": "[EOS]",
+        "ids": [
+          2
+        ],
+        "tokens": [
+          "[EOS]"
+        ]
+      }
+    }
+  },
+  "decoder": null,
+  "model": {
+    "type": "WordLevel",
+    "vocab": {
+      "[PAD]": 0,
+      "[BOS]": 1,
+      "[EOS]": 2,
+      "[UNK]": 3,
+      "{": 4,
+      "}": 5,
+      "_": 6,
+      "1": 7,
+      "2": 8,
+      "^": 9,
+      "(": 10,
+      ")": 11,
+      "x": 12,
+      "=": 13,
+      "-": 14,
+      "+": 15,
+      "\\frac": 16,
+      "0": 17,
+      "n": 18,
+      "3": 19,
+      ",": 20,
+      "a": 21,
+      "y": 22,
+      "i": 23,
+      "d": 24,
+      "4": 25,
+      "b": 26,
+      "t": 27,
+      "k": 28,
+      "c": 29,
+      "5": 30,
+      "\\sqrt": 31,
+      "f": 32,
+      "z": 33,
+      "p": 34,
+      "r": 35,
+      "m": 36,
+      "6": 37,
+      "7": 38,
+      "8": 39,
+      "e": 40,
+      "9": 41,
+      "|": 42,
+      "/": 43,
+      "A": 44,
+      ".": 45,
+      "\\theta": 46,
+      "s": 47,
+      "v": 48,
+      "\\pi": 49,
+      "j": 50,
+      "\\alpha": 51,
+      "g": 52,
+      "\\int": 53,
+      "u": 54,
+      "R": 55,
+      "C": 56,
+      "X": 57,
+      "T": 58,
+      "\\sum": 59,
+      "[": 60,
+      "]": 61,
+      "\\sin": 62,
+      "B": 63,
+      "P": 64,
+      "q": 65,
+      "S": 66,
+      "h": 67,
+      "N": 68,
+      "\\times": 69,
+      "\\dots": 70,
+      "F": 71,
+      "\\cos": 72,
+      "E": 73,
+      "V": 74,
+      "L": 75,
+      "\\beta": 76,
+      "M": 77,
+      "w": 78,
+      "G": 79,
+      "I": 80,
+      "\\log": 81,
+      "H": 82,
+      "l": 83,
+      "\\infty": 84,
+      "\\leq": 85,
+      "\\prime": 86,
+      "\\sigma": 87,
+      "o": 88,
+      "\\Delta": 89,
+      "\\mu": 90,
+      "\\gamma": 91,
+      "\\phi": 92,
+      "Y": 93,
+      "\\{": 94,
+      "\\}": 95,
+      "\\pm": 96,
+      "!": 97,
+      "\\geq": 98,
+      "\\lambda": 99,
+      "\\gt": 100,
+      "\\rightarrow": 101,
+      "\\tan": 102,
+      "\\neq": 103,
+      "\\in": 104,
+      "\\lim": 105,
+      "\\div": 106,
+      "\\lt": 107,
+      "\\forall": 108,
+      "\\cdots": 109,
+      "\\cdot": 110,
+      "\\exists": 111,
+      "O": 112,
+      "W": 113,
+      "\\Pi": 114
+    },
+    "unk_token": "[UNK]"
+  }
+}
