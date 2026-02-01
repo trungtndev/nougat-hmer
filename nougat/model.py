@@ -542,9 +542,11 @@ class NougatModel(PreTrainedModel):
         """
         encoder_outputs = self.encoder(image_tensors)
         decoder_outputs = self.decoder(
-            input_ids=decoder_input_ids[:, :-1].contiguous(),
             encoder_hidden_states=encoder_outputs,
+
+            input_ids=decoder_input_ids[:, :-1].contiguous(),
             attention_mask=attention_mask[:, :-1],
+
             labels=decoder_input_ids[:, 1:].contiguous(),
         )
         return decoder_outputs
