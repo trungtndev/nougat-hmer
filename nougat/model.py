@@ -541,13 +541,17 @@ class NougatModel(PreTrainedModel):
             decoder_input_ids: (batch_size, sequence_length, embedding_dim)
         """
         encoder_outputs = self.encoder(image_tensors)
+
+        labels = decoder_input_ids[:, 1:].contiguous()
+        labels[labels == self.decoder.tokenizer.pad_token_id] = -100
+
         decoder_outputs = self.decoder(
             encoder_hidden_states=encoder_outputs,
 
             input_ids=decoder_input_ids[:, :-1].contiguous(),
             attention_mask=attention_mask[:, :-1],
 
-            labels=decoder_input_ids[:, 1:].contiguous(),
+            labels=labels,
         )
         return decoder_outputs
 
