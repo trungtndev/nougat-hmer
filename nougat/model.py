@@ -50,15 +50,15 @@ class SwinEncoder(nn.Module):
     """
 
     def __init__(
-        self,
-        input_size: List[int],
-        align_long_axis: bool,
-        window_size: int,
-        encoder_layer: List[int],
-        patch_size: int,
-        embed_dim: int,
-        num_heads: List[int],
-        name_or_path: Union[str, bytes, os.PathLike] = None,
+            self,
+            input_size: List[int],
+            align_long_axis: bool,
+            window_size: int,
+            encoder_layer: List[int],
+            patch_size: int,
+            embed_dim: int,
+            num_heads: List[int],
+            name_or_path: Union[str, bytes, os.PathLike] = None,
     ):
         super().__init__()
         self.input_size = input_size
@@ -89,8 +89,8 @@ class SwinEncoder(nn.Module):
                 if x.endswith("relative_position_index") or x.endswith("attn_mask"):
                     pass
                 elif (
-                    x.endswith("relative_position_bias_table")
-                    and self.model.layers[0].blocks[0].attn.window_size[0] != 12
+                        x.endswith("relative_position_bias_table")
+                        and self.model.layers[0].blocks[0].attn.window_size[0] != 12
                 ):
                     pos_bias = swin_state_dict[x].unsqueeze(0)[0]
                     old_len = int(math.sqrt(len(pos_bias)))
@@ -106,7 +106,7 @@ class SwinEncoder(nn.Module):
                     )
                     new_swin_state_dict[x] = (
                         pos_bias.permute(0, 2, 3, 1)
-                        .reshape(1, new_len**2, -1)
+                        .reshape(1, new_len ** 2, -1)
                         .squeeze(0)
                     )
                 else:
@@ -146,7 +146,7 @@ class SwinEncoder(nn.Module):
             return test_transform
 
     def prepare_input(
-        self, img: Image.Image, random_padding: bool = False
+            self, img: Image.Image, random_padding: bool = False
     ) -> torch.Tensor:
         """
         Convert PIL Image to tensor according to specified input_size after following steps below:
@@ -165,8 +165,8 @@ class SwinEncoder(nn.Module):
         if img.height == 0 or img.width == 0:
             return
         if self.align_long_axis and (
-            (self.input_size[0] > self.input_size[1] and img.width > img.height)
-            or (self.input_size[0] < self.input_size[1] and img.width < img.height)
+                (self.input_size[0] > self.input_size[1] and img.width > img.height)
+                or (self.input_size[0] < self.input_size[1] and img.width < img.height)
         ):
             img = rotate(img, angle=-90, expand=True)
         img = resize(img, min(self.input_size))
@@ -205,11 +205,11 @@ class BARTDecoder(nn.Module):
     """
 
     def __init__(
-        self,
-        decoder_layer: int,
-        max_position_embeddings: int,
-        hidden_dimension: int = 1024,
-        name_or_path: Union[str, bytes, os.PathLike] = None,
+            self,
+            decoder_layer: int,
+            max_position_embeddings: int,
+            hidden_dimension: int = 1024,
+            name_or_path: Union[str, bytes, os.PathLike] = None,
     ):
         super().__init__()
         self.decoder_layer = decoder_layer
@@ -220,11 +220,17 @@ class BARTDecoder(nn.Module):
             tokenizer_file = Path(name_or_path) / "tokenizer.json"
         if not tokenizer_file.exists():
             raise ValueError("Could not find tokenizer file")
-        self.tokenizer = PreTrainedTokenizerFast(tokenizer_file=str(tokenizer_file))
-        self.tokenizer.pad_token = "<pad>"
-        self.tokenizer.bos_token = "<s>"
-        self.tokenizer.eos_token = "</s>"
-        self.tokenizer.unk_token = "<unk>"
+        # self.tokenizer = PreTrainedTokenizerFast(tokenizer_file=str(tokenizer_file))
+        # self.tokenizer.pad_token = "<pad>"
+        # self.tokenizer.bos_token = "<s>"
+        # self.tokenizer.eos_token = "</s>"
+        # self.tokenizer.unk_token = "<unk>"
+        self.tokenizer = PreTrainedTokenizerFast(tokenizer_file="nougat/dataset/tokenizer_word.json",
+                                                 bos_token="[BOS]",
+                                                 eos_token="[EOS]",
+                                                 pad_token="[PAD]",
+                                                 unk_token="[UNK]",
+                                                 )
 
         self.model = MBartForCausalLM(
             config=MBartConfig(
@@ -250,14 +256,15 @@ class BARTDecoder(nn.Module):
             new_bart_state_dict = self.model.state_dict()
             for x in new_bart_state_dict:
                 if (
-                    x.endswith("embed_positions.weight")
-                    and self.max_position_embeddings != 1024
+                        x.endswith("embed_positions.weight")
+                        and self.max_position_embeddings != 1024
                 ):
                     new_bart_state_dict[x] = torch.nn.Parameter(
                         self.resize_bart_abs_pos_emb(
                             bart_state_dict[x],
                             self.max_position_embeddings
-                            + 2,  # https://github.com/huggingface/transformers/blob/v4.11.3/src/transformers/models/mbart/modeling_mbart.py#L118-L119
+                            + 2,
+                            # https://github.com/huggingface/transformers/blob/v4.11.3/src/transformers/models/mbart/modeling_mbart.py#L118-L119
                         )
                     )
                 elif x.endswith("embed_tokens.weight") or x.endswith("lm_head.weight"):
@@ -279,14 +286,14 @@ class BARTDecoder(nn.Module):
             self.model.resize_token_embeddings(len(self.tokenizer))
 
     def prepare_inputs_for_inference(
-        self,
-        input_ids: torch.Tensor,
-        encoder_outputs: torch.Tensor,
-        past=None,
-        past_key_values=None,
-        use_cache: bool = None,
-        attention_mask: torch.Tensor = None,
-        **kwargs
+            self,
+            input_ids: torch.Tensor,
+            encoder_outputs: torch.Tensor,
+            past=None,
+            past_key_values=None,
+            use_cache: bool = None,
+            attention_mask: torch.Tensor = None,
+            **kwargs
     ):
         """
         Args:
@@ -311,16 +318,16 @@ class BARTDecoder(nn.Module):
         return output
 
     def forward(
-        self,
-        input_ids,
-        attention_mask: Optional[torch.Tensor] = None,
-        encoder_hidden_states: Optional[torch.Tensor] = None,
-        past_key_values: Optional[torch.Tensor] = None,
-        labels: Optional[torch.Tensor] = None,
-        use_cache: bool = None,
-        output_attentions: Optional[torch.Tensor] = None,
-        output_hidden_states: Optional[torch.Tensor] = None,
-        return_dict: bool = None,
+            self,
+            input_ids,
+            attention_mask: Optional[torch.Tensor] = None,
+            encoder_hidden_states: Optional[torch.Tensor] = None,
+            past_key_values: Optional[torch.Tensor] = None,
+            labels: Optional[torch.Tensor] = None,
+            use_cache: bool = None,
+            output_attentions: Optional[torch.Tensor] = None,
+            output_hidden_states: Optional[torch.Tensor] = None,
+            return_dict: bool = None,
     ):
         return self.model.forward(
             input_ids,
@@ -384,20 +391,20 @@ class NougatConfig(PretrainedConfig):
     model_type = "nougat"
 
     def __init__(
-        self,
-        input_size: List[int] = [896, 672],
-        align_long_axis: bool = False,
-        window_size: int = 7,
-        encoder_layer: List[int] = [2, 2, 14, 2],
-        decoder_layer: int = 10,
-        max_position_embeddings: int = None,
-        max_length: int = 4096,
-        name_or_path: Union[str, bytes, os.PathLike] = "",
-        patch_size: int = 4,
-        embed_dim: int = 128,
-        num_heads: List[int] = [4, 8, 16, 32],
-        hidden_dimension: int = 1024,
-        **kwargs,
+            self,
+            input_size: List[int] = [896, 672],
+            align_long_axis: bool = False,
+            window_size: int = 7,
+            encoder_layer: List[int] = [2, 2, 14, 2],
+            decoder_layer: int = 10,
+            max_position_embeddings: int = None,
+            max_length: int = 4096,
+            name_or_path: Union[str, bytes, os.PathLike] = "",
+            patch_size: int = 4,
+            embed_dim: int = 128,
+            num_heads: List[int] = [4, 8, 16, 32],
+            hidden_dimension: int = 1024,
+            **kwargs,
     ):
         super().__init__()
         self.input_size = input_size
@@ -478,7 +485,7 @@ class StoppingCriteriaScores(StoppingCriteria):
 def batch(l, b=15):
     subs = []
     for i in range(len(l) - b):
-        subs.append(l[i : i + b])
+        subs.append(l[i: i + b])
     return subs
 
 
@@ -520,10 +527,10 @@ class NougatModel(PreTrainedModel):
         )
 
     def forward(
-        self,
-        image_tensors: torch.Tensor,
-        decoder_input_ids: torch.Tensor,
-        attention_mask: Optional[torch.Tensor] = None,
+            self,
+            image_tensors: torch.Tensor,
+            decoder_input_ids: torch.Tensor,
+            attention_mask: Optional[torch.Tensor] = None,
     ):
         """
         Calculate a loss given an input image and a desired token sequence,
@@ -546,11 +553,11 @@ class NougatModel(PreTrainedModel):
         return
 
     def inference(
-        self,
-        image: Image.Image = None,
-        image_tensors: Optional[torch.Tensor] = None,
-        return_attentions: bool = False,
-        early_stopping: bool = True,
+            self,
+            image: Image.Image = None,
+            image_tensors: Optional[torch.Tensor] = None,
+            return_attentions: bool = False,
+            early_stopping: bool = True,
     ):
         """
         Generate a token sequence in an auto-regressive manner.
@@ -628,7 +635,7 @@ class NougatModel(PreTrainedModel):
             varvar = np.array([np.var(v) for v in subdiv(var[::-1])][::-1])
             minlen = 120
             if (
-                indices[b] == self.decoder.tokenizer.eos_token_id
+                    indices[b] == self.decoder.tokenizer.eos_token_id
             ).any() and N + 1 < indices.shape[1]:
                 # there is an end to the generation, likely no repetitions
                 output["repeats"].append(None)
@@ -670,10 +677,10 @@ class NougatModel(PreTrainedModel):
 
     @classmethod
     def from_pretrained(
-        cls,
-        model_path: Union[str, bytes, os.PathLike],
-        *model_args,
-        **kwargs,
+            cls,
+            model_path: Union[str, bytes, os.PathLike],
+            *model_args,
+            **kwargs,
     ):
         r"""
         Instantiate a pretrained nougat model from a pre-trained model configuration
@@ -689,13 +696,14 @@ class NougatModel(PreTrainedModel):
         # truncate or interpolate position embeddings of decoder
         max_length = kwargs.get("max_length", model.config.max_position_embeddings)
         if (
-            max_length != model.config.max_position_embeddings
+                max_length != model.config.max_position_embeddings
         ):  # if max_length of trained model differs max_length you want to train
             model.decoder.model.model.decoder.embed_positions.weight = torch.nn.Parameter(
                 model.decoder.resize_bart_abs_pos_emb(
                     model.decoder.model.model.decoder.embed_positions.weight,
                     max_length
-                    + 2,  # https://github.com/huggingface/transformers/blob/v4.11.3/src/transformers/models/mbart/modeling_mbart.py#L118-L119
+                    + 2,
+                    # https://github.com/huggingface/transformers/blob/v4.11.3/src/transformers/models/mbart/modeling_mbart.py#L118-L119
                 )
             )
             model.config.max_position_embeddings = max_length

@@ -72,7 +72,7 @@ class NougatModelPLModule(pl.LightningModule):
         decoder_input_ids = tokenizer_out["input_ids"].to(self.device)
         attention_masks = tokenizer_out["attention_mask"].to(self.device)
         loss = self.model(image_tensors, decoder_input_ids, attention_masks)[0]
-        self.log("train/loss", loss, prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
+        self.log("train/loss", loss, prog_bar=True, on_step=False, on_epoch=True, sync_dist=True)
 
         return loss
 
@@ -97,7 +97,7 @@ class NougatModelPLModule(pl.LightningModule):
         self.exprate_recorder(preds, gts)
         self.log(
             "val/exprate", self.exprate_recorder,
-            prog_bar=True, on_step=True, on_epoch=True, sync_dist=True
+            prog_bar=True, on_step=False, on_epoch=True, sync_dist=True
         )
 
     # def on_validation_epoch_end(self):
@@ -114,26 +114,6 @@ class NougatModelPLModule(pl.LightningModule):
 
         max_iter = None
 
-        # if int(self.config.get("max_epochs", -1)) > 0:
-        #     assert (
-        #         len(self.config.train_batch_sizes) == 1
-        #     ), "Set max_epochs only if the number of datasets is 1"
-        #     steps = self.config.num_training_samples_per_epoch
-        #     max_iter = (self.config.max_epochs * steps) / max(
-        #         1,
-        #         (
-        #             self.config.train_batch_sizes[0]
-        #             * _get_device_count()
-        #             * self.config.get("num_nodes", 1)
-        #         ),
-        #     )
-        #
-        # if int(self.config.get("max_steps", -1)) > 0:
-        #     max_iter = (
-        #         min(self.config.max_steps, max_iter)
-        #         if max_iter is not None
-        #         else self.config.max_steps
-        #     )
         tbs = self.config.train_batch_sizes
         if isinstance(tbs, int):
             tbs = [tbs]
@@ -217,18 +197,6 @@ class NougatDataPLModule(pl.LightningDataModule):
         self.g.manual_seed(self.config.seed)
 
     def train_dataloader(self):
-        # loaders = [
-        #     DataLoader(
-        #         torch.utils.data.ConcatDataset(self.train_datasets),
-        #         batch_size=self.train_batch_sizes[0],
-        #         num_workers=self.config.num_workers,
-        #         pin_memory=True,
-        #         worker_init_fn=self.seed_worker,
-        #         generator=self.g,
-        #         shuffle=True,
-        #         collate_fn=self.ignore_none_collate,
-        #     )
-        # ]
         return DataLoader(
             self.train_datasets,
             shuffle=True,
@@ -241,15 +209,6 @@ class NougatDataPLModule(pl.LightningDataModule):
         )
 
     def val_dataloader(self):
-        # loaders = [
-        #     DataLoader(
-        #         torch.utils.data.ConcatDataset(self.val_datasets),
-        #         batch_size=self.val_batch_sizes[0],
-        #         pin_memory=True,
-        #         shuffle=True,
-        #         collate_fn=self.ignore_none_collate,
-        #     )
-        # ]
         return DataLoader(
             self.train_datasets,
             shuffle=False,
