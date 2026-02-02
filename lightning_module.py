@@ -211,7 +211,7 @@ class NougatDataPLModule(pl.LightningDataModule):
 
     def val_dataloader(self):
         return DataLoader(
-            self.train_datasets,
+            self.val_datasets,
             shuffle=False,
             num_workers=self.config.num_workers,
             batch_size=self.val_batch_sizes,
