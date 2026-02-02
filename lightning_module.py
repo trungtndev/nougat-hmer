@@ -204,9 +204,8 @@ class NougatDataPLModule(pl.LightningDataModule):
             num_workers=self.config.num_workers,
             batch_size=self.train_batch_sizes,
             pin_memory=True,
-            generator=self.g,
-            worker_init_fn=self.seed_worker,
-
+            # generator=self.g,
+            # worker_init_fn=self.seed_worker,
         )
 
     def val_dataloader(self):
