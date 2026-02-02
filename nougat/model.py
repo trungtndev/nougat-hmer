@@ -545,6 +545,17 @@ class NougatModel(PreTrainedModel):
         labels = decoder_input_ids[:, 1:].contiguous()
         labels[labels == self.decoder.tokenizer.pad_token_id] = -100
 
+        # pad_id = self.decoder.tokenizer.pad_token_id
+        # eos_id = self.decoder.tokenizer.eos_token_id
+        # input_ids = decoder_input_ids[:, :-1].clone()
+        # attention = attention_mask[:, :-1].clone()
+        # for b in range(input_ids.size(0)):
+        #     eos_pos = (input_ids[b] == eos_id).nonzero(as_tuple=True)[0]
+        #     if len(eos_pos) > 0:
+        #         first_eos = eos_pos[0].item()
+        #         attention[b, first_eos:] = 0
+        #         input_ids[b, first_eos:] = pad_id
+
         decoder_outputs = self.decoder(
             encoder_hidden_states=encoder_outputs,
 
@@ -602,13 +613,14 @@ class NougatModel(PreTrainedModel):
                 encoder_outputs.last_hidden_state.unsqueeze(0)
             )
 
-        # get decoder output
         decoder_output = self.decoder.model.generate(
             encoder_outputs=encoder_outputs,
             min_length=1,
             max_length=self.config.max_length,
             pad_token_id=self.decoder.tokenizer.pad_token_id,
             eos_token_id=self.decoder.tokenizer.eos_token_id,
+            decoder_start_token_id=self.decoder.tokenizer.bos_token_id,
+            length_penalty=0.9,
             use_cache=True,
             bad_words_ids=[
                 [self.decoder.tokenizer.unk_token_id],
@@ -621,56 +633,8 @@ class NougatModel(PreTrainedModel):
                 [StoppingCriteriaScores()] if early_stopping else []
             ),
         )
-        output["repetitions"] = decoder_output.sequences.clone()
-        output["sequences"] = decoder_output.sequences.clone()
-        batch_size = len(decoder_output.sequences)
-
-        logits = torch.stack(decoder_output.scores, 1).cpu().max(-1)
-        values = logits.values
-        indices = logits.indices
-
-        for b in range(batch_size):
-            mask = indices[b] != self.decoder.tokenizer.pad_token_id
-            N = mask.sum().item()
-            var = np.array(
-                [np.var(s) / len(s) for s in batch(values[b, mask].float().numpy())]
-            )
-            if len(var) < 10:
-                output["repeats"].append(None)
-                continue
-            varvar = np.array([np.var(v) for v in subdiv(var[::-1])][::-1])
-            minlen = 120
-            if (
-                    indices[b] == self.decoder.tokenizer.eos_token_id
-            ).any() and N + 1 < indices.shape[1]:
-                # there is an end to the generation, likely no repetitions
-                output["repeats"].append(None)
-                continue
-            small_var = np.where(varvar < 0.045)[0]
-            if early_stopping and len(small_var) > 1:
-                if np.all(np.diff(small_var) < 2):
-                    idx = int(min(max(small_var[0], 1) * 1.08 + minlen, 4095))
-                    if idx / N > 0.9:  # at most last bit
-                        output["repeats"].append(None)
-                        continue
-                    elif small_var[0] < 30:
-                        idx = 0
-                    # logging.warn("Found repetitions in sample %i" % b)
-                    output["repeats"].append(idx)
-                    output["sequences"][b, idx:] = self.decoder.tokenizer.pad_token_id
-                    output["repetitions"][b, :idx] = self.decoder.tokenizer.pad_token_id
-                else:
-                    output["repeats"].append(None)
-            else:
-                output["repeats"].append(None)
-        output["repetitions"] = self.decoder.tokenizer.batch_decode(
-            output["repetitions"], skip_special_tokens=True
-        )
-        output["predictions"] = postprocess(
-            self.decoder.tokenizer.batch_decode(
-                output["sequences"], skip_special_tokens=True
-            ),
-            markdown_fix=False,
+        output["predictions"] = self.decoder.tokenizer.batch_decode(
+            decoder_output.sequences.clone(), skip_special_tokens=True
         )
 
         if return_attentions:
