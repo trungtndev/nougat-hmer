@@ -113,15 +113,14 @@ class SwinEncoder(nn.Module):
                     new_swin_state_dict[x] = swin_state_dict[x]
             self.model.load_state_dict(new_swin_state_dict)
 
+            self.model.head = nn.Identity()
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
             x: (batch_size, num_channels, height, width)
         """
-        x = self.model.patch_embed(x)
-        # x = self.model.pos_drop(x)
-        x = self.model.layers(x)
-        return x
+        return self.model(x)
 
     @staticmethod
     def crop_margin(img: Image.Image) -> Image.Image:
@@ -154,16 +153,7 @@ class SwinEncoder(nn.Module):
             - rotate (if align_long_axis is True and image is not aligned longer axis with canvas)
             - pad
         """
-        if img is None:
-            return
-        # crop margins
-        try:
-            img = self.crop_margin(img.convert("RGB"))
-        except OSError:
-            # might throw an error for broken files
-            return
-        if img.height == 0 or img.width == 0:
-            return
+        img = self.crop_margin(img.convert("RGB"))
         if self.align_long_axis and (
                 (self.input_size[0] > self.input_size[1] and img.width > img.height)
                 or (self.input_size[0] < self.input_size[1] and img.width < img.height)
@@ -185,7 +175,7 @@ class SwinEncoder(nn.Module):
             delta_width - pad_width,
             delta_height - pad_height,
         )
-        return self.to_tensor(ImageOps.expand(img, padding))
+        return self.to_tensor(ImageOps.expand(img, padding, fill=(255, 255, 255))) # make border white
 
 
 class BARTDecoder(nn.Module):
@@ -220,17 +210,17 @@ class BARTDecoder(nn.Module):
             tokenizer_file = Path(name_or_path) / "tokenizer.json"
         if not tokenizer_file.exists():
             raise ValueError("Could not find tokenizer file")
-        # self.tokenizer = PreTrainedTokenizerFast(tokenizer_file=str(tokenizer_file))
-        # self.tokenizer.pad_token = "<pad>"
-        # self.tokenizer.bos_token = "<s>"
-        # self.tokenizer.eos_token = "</s>"
-        # self.tokenizer.unk_token = "<unk>"
-        self.tokenizer = PreTrainedTokenizerFast(tokenizer_file="nougat/dataset/tokenizer_word.json",
-                                                 bos_token="[BOS]",
-                                                 eos_token="[EOS]",
-                                                 pad_token="[PAD]",
-                                                 unk_token="[UNK]",
-                                                 )
+        self.tokenizer = PreTrainedTokenizerFast(tokenizer_file=str(tokenizer_file))
+        self.tokenizer.pad_token = "<pad>"
+        self.tokenizer.bos_token = "<s>"
+        self.tokenizer.eos_token = "</s>"
+        self.tokenizer.unk_token = "<unk>"
+        # self.tokenizer = PreTrainedTokenizerFast(tokenizer_file="nougat/dataset/tokenizer_word.json",
+        #                                          bos_token="[BOS]",
+        #                                          eos_token="[EOS]",
+        #                                          pad_token="[PAD]",
+        #                                          unk_token="[UNK]",
+        #                                          )
 
         self.model = MBartForCausalLM(
             config=MBartConfig(
@@ -541,6 +531,7 @@ class NougatModel(PreTrainedModel):
             decoder_input_ids: (batch_size, sequence_length, embedding_dim)
         """
         encoder_outputs = self.encoder(image_tensors)
+        print("encoder_outputs shape:", encoder_outputs.shape)
 
         labels = decoder_input_ids[:, 1:].contiguous()
         labels[labels == self.decoder.tokenizer.pad_token_id] = -100

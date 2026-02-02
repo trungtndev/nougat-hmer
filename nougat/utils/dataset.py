@@ -287,7 +287,6 @@ class CROHMEDataset(Dataset):
         nougat_model: PreTrainedModel,
         max_length: int,
         split: str = "train",
-        root_name: str = "arxiv",
     ):
         super().__init__()
         self.dataset_path = dataset_path
@@ -295,8 +294,6 @@ class CROHMEDataset(Dataset):
         self.max_length = max_length
         self.split = split
         self.perturb = "NOUGAT_PERTURB" in os.environ and os.environ["NOUGAT_PERTURB"]
-        # TODO improve naming conventions
-        # template = "%s"
         self.dataset = pd.read_csv(
             f"{dataset_path}/caption.txt",
             sep="\t", names=['image', 'caption']
@@ -306,14 +303,6 @@ class CROHMEDataset(Dataset):
         return len(self.dataset)
 
     def __getitem__(self, idx: int):
-        """
-        Load image from image_path of given dataset_path and convert into input_tensor and labels.
-        Convert gt data into input_ids (tokenized string)
-
-        Returns:
-            input_tensor : preprocessed image
-            input_ids : tokenized gt_data
-        """
         fname, txt = self.dataset[idx]
         sample = Image.open(f"{self.dataset_path}/img/{fname}.png").convert("RGB").copy()
         input_tensor = self.nougat_model.encoder.prepare_input(
